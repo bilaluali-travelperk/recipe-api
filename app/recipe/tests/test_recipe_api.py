@@ -4,9 +4,11 @@ from django.urls import reverse
 from rest_framework import status
 
 from recipe.models import Recipe
-from recipe.serializers import RecipeSerializer
+from recipe.serializers import RecipeSerializer, RecipeDetailSerializer
 
-RECIPES_URL = reverse('recipe:recipe-list')
+
+def recipe_url(pattern, args=[]):
+    return reverse(f'recipe:recipe-{pattern}', args=args)
 
 
 def sample_recipe(**fields):
@@ -27,10 +29,30 @@ class RecipeApiTests(TestCase):
         sample_recipe()
         sample_recipe()
 
-        res = self.client.get(RECIPES_URL, {'ordering': 'id'})
+        url = recipe_url('list')
+        res = self.client.get(url, {'ordering': 'id'})
 
         recipes = Recipe.objects.all().order_by('id')
         serializer = RecipeSerializer(recipes, many=True)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
+
+    def test_detail_recipe(self):
+        """Test retrieving a detailed recipe"""
+        recipe = sample_recipe()
+
+        url = recipe_url('detail', [recipe.id])
+        res = self.client.get(url)
+
+        serializer = RecipeDetailSerializer(recipe)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
+
+    def test_detail_undefined_recipe(self):
+        """Test retrieving a non existing recipe"""
+        url = recipe_url('detail', ['undefinedId'])
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
