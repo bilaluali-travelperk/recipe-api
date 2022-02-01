@@ -4,7 +4,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from recipe.models import Recipe
-from recipe.serializers import RecipeSerializer, RecipeDetailSerializer
+from recipe.serializers import RecipeSerializer, RecipeSerializer
 from .helpers import sample_recipe
 
 
@@ -58,7 +58,7 @@ class RecipeApiTests(TestCase):
         url = recipe_url('detail', [recipe.id])
         res = self.client.get(url)
 
-        serializer = RecipeDetailSerializer(recipe)
+        serializer = RecipeSerializer(recipe)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
@@ -98,7 +98,7 @@ class RecipeApiTests(TestCase):
                                 content_type='application/json')
 
         recipe.refresh_from_db()
-        serializer = RecipeDetailSerializer(recipe)
+        serializer = RecipeSerializer(recipe)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
@@ -115,7 +115,7 @@ class RecipeApiTests(TestCase):
                                 content_type='application/json')
 
         recipe.refresh_from_db()
-        serializer = RecipeDetailSerializer(recipe)
+        serializer = RecipeSerializer(recipe)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
@@ -132,7 +132,7 @@ class RecipeApiTests(TestCase):
                                 content_type='application/json')
 
         recipe.refresh_from_db()
-        serializer = RecipeDetailSerializer(recipe)
+        serializer = RecipeSerializer(recipe)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
