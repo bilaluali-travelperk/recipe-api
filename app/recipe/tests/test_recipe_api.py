@@ -79,3 +79,18 @@ class RecipeApiTests(TestCase):
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_create_recipe(self):
+        """Test creating a simple recipe"""
+        data = {
+            'name': 'Test recipe 1',
+            'description': 'Test recipe 1 description',
+        }
+
+        url = recipe_url('list')
+        res = self.client.post(url, data)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        res_data = {k: res.data[k] for k in data.keys()}
+        self.assertEqual(data, res_data)
