@@ -146,3 +146,17 @@ class RecipeApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
+
+    def test_delete_recipe(self):
+        """Test deleting recipe"""
+        recipe = sample_recipe()
+        sample_recipe()
+        sample_recipe()
+
+        url = recipe_url('detail', [recipe.id])
+        res = self.client.delete(url)
+        
+        recipes_ids = Recipe.objects.all().values_list('id', flat=True)
+
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertNotIn(recipe.id, recipes_ids)
