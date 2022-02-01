@@ -5,21 +5,11 @@ from rest_framework import status
 
 from recipe.models import Recipe
 from recipe.serializers import RecipeSerializer, RecipeDetailSerializer
+from .helpers import sample_recipe
 
 
 def recipe_url(pattern, args=[]):
     return reverse(f'recipe:recipe-{pattern}', args=args)
-
-
-def sample_recipe(**fields):
-    """Creates and returns a sample recipe"""
-    defaults = {
-        'name': 'Sample recipe',
-        'description': 'Sample recipe description'
-    }
-    defaults.update(fields)
-
-    return Recipe.objects.create(**defaults)
 
 
 class RecipeApiTests(TestCase):
@@ -155,7 +145,7 @@ class RecipeApiTests(TestCase):
 
         url = recipe_url('detail', [recipe.id])
         res = self.client.delete(url)
-        
+
         recipes_ids = Recipe.objects.all().values_list('id', flat=True)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
