@@ -1,11 +1,12 @@
 from django.test import TestCase
 from django.urls import reverse
+from copy import copy
 
 from rest_framework import status
 
-from recipe.models import Recipe
-from recipe.serializers import RecipeSerializer, RecipeSerializer
-from .helpers import sample_recipe
+from recipe.models import Recipe, Ingredient
+from recipe.serializers import RecipeSerializer
+from .helpers import sample_recipe, pick
 
 
 def recipe_url(pattern, args=[]):
@@ -75,33 +76,58 @@ class RecipeApiTests(TestCase):
         data = {
             'name': 'Test recipe 1',
             'description': 'Test recipe 1 description',
+            'ingredients': []
         }
 
         url = recipe_url('list')
-        res = self.client.post(url, data)
+        content_type = 'application/json'
+        res = self.client.post(url, data, content_type=content_type)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            pick(res.data, ['name', 'description']),
+            pick(data, ['name', 'description'])
+        )
 
-        res_data = {k: res.data[k] for k in data.keys()}
-        self.assertEqual(data, res_data)
-
-    def test_patch_recipe(self):
-        """Test updating a recipe with patch"""
-        recipe = sample_recipe()
+    def test_create_recipe_with_ingredients(self):
+        """Test creating a recipe with ingredients"""
         data = {
-            'name': 'Updated recipe name',
-            'description': 'Updated recipe description',
+            'name': 'Test recipe 1',
+            'description': 'Test recipe 1 description',
+            'ingredients': [
+                {'name': 'Test ingredient 1'},
+                {'name': 'Test ingredient 2'},
+            ]
         }
 
-        url = recipe_url('detail', [recipe.id])
-        res = self.client.patch(url, data,
-                                content_type='application/json')
+        url = recipe_url('list')
+        content_type = 'application/json'
+        res = self.client.post(url, data, content_type=content_type)
 
-        recipe.refresh_from_db()
-        serializer = RecipeSerializer(recipe)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            pick(res.data, ['name', 'description']),
+            pick(data, ['name', 'description'])
+        )
 
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data, serializer.data)
+        ingredients = [pick(ingredient, ['name'])
+                        for ingredient in res.data['ingredients']]
+
+        self.assertEqual(len(ingredients), len(data['ingredients']))
+        self.assertEqual(ingredients, data['ingredients'])
+
+    def test_create_bad_recipe(self):
+        """Test creating a recipe with missing params"""
+        data = {
+            'name': 'Test recipe 1',
+            'description': 'Test recipe 1 description',
+        }
+
+        url = recipe_url('list')
+        content_type = 'application/json'
+        res = self.client.post(url, data, content_type=content_type)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_patch_recipe_name(self):
         """Test updating name of a recipe with patch"""
@@ -111,8 +137,8 @@ class RecipeApiTests(TestCase):
         }
 
         url = recipe_url('detail', [recipe.id])
-        res = self.client.patch(url, data,
-                                content_type='application/json')
+        content_type = 'application/json'
+        res = self.client.patch(url, data, content_type=content_type)
 
         recipe.refresh_from_db()
         serializer = RecipeSerializer(recipe)
@@ -128,14 +154,41 @@ class RecipeApiTests(TestCase):
         }
 
         url = recipe_url('detail', [recipe.id])
-        res = self.client.patch(url, data,
-                                content_type='application/json')
+        content_type = 'application/json'
+        res = self.client.patch(url, data, content_type=content_type)
 
         recipe.refresh_from_db()
         serializer = RecipeSerializer(recipe)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
+
+    def test_patch_recipe_ingredients(self):
+        """Test updating recipe's ingredients with patch"""
+        recipe = sample_recipe()
+        data = {
+            'ingredients': [
+                {'name': 'Updated ingredient 1'},
+                {'name': 'Updated ingredient 2'},
+            ]
+        }
+
+        ingredients = recipe.ingredients
+        ingredients_ids_delete = copy(ingredients.values('id'))
+
+        url = recipe_url('detail', [recipe.id])
+        content_type = 'application/json'
+        res = self.client.patch(url, data, content_type=content_type)
+
+        recipe.refresh_from_db()
+        serializer = RecipeSerializer(recipe)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
+
+        ingredients_ids = Ingredient.objects.all().values('id')
+        for id in ingredients_ids_delete:
+            self.assertNotIn(id, ingredients_ids)
 
     def test_delete_recipe(self):
         """Test deleting recipe"""
@@ -146,7 +199,7 @@ class RecipeApiTests(TestCase):
         url = recipe_url('detail', [recipe.id])
         res = self.client.delete(url)
 
-        recipes_ids = Recipe.objects.all().values_list('id', flat=True)
+        recipes_ids = Recipe.objects.all().values('id')
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
         self.assertNotIn(recipe.id, recipes_ids)

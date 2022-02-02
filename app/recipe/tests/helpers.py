@@ -1,23 +1,21 @@
-from recipe.models import Recipe, Ingredient
+from recipe.models import Recipe
 
 
 def sample_recipe(**fields):
     """Creates and returns a sample recipe"""
     defaults = {
         'name': 'Sample recipe',
-        'description': 'Sample recipe description'
+        'description': 'Sample recipe description',
     }
     defaults.update(fields)
 
-    return Recipe.objects.create(**defaults)
+    recipe = Recipe.objects.create(**defaults)
+    ingredient = {'name': 'Sample ingredient 1'}
+    recipe.ingredients.create(**ingredient)
+
+    return recipe
 
 
-def sample_ingredient(**fields):
-    """Creates and returns a sample ingredient"""
-    defaults = {
-        'name': 'Sample ingredient',
-        'recipe': sample_recipe()
-    }
-    defaults.update(fields)
-
-    return Ingredient.objects.create(**defaults)
+def pick(dict, keys):
+    """Build a new dictionary filtering by 'keys'"""
+    return {k: dict[k] for k in keys}
